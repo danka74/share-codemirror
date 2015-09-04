@@ -1,20 +1,129 @@
 <!DOCTYPE html>
 <html>
 <head>
-<link rel="stylesheet" href="/codemirror.css">
-<script src="/codemirror.js"></script>
+<link rel="stylesheet" href="/lib/codemirror.css">
+<script src="/lib/codemirror.js"></script>
+<script src="addon/mode/simple.js"></script>
 <script src="/channel/bcsocket.js"></script>
-<script src="/share.uncompressed.js"></script>
+<script src="/share.js"></script>
 <script src="/share-codemirror.js"></script>
 </head>
 <body>
 <textarea id="pad">Connecting...</textarea>
-<button id="monkey">Infinite Monkey</button>
+<a href="javascript:autoFormatSelection()">
+            Autoformat Selected
+          </a>
+&nbsp;
+<a href="javascript:checkSyntax()">
+            Check Syntax
+          </a>
 <script>
+/* Example definition of a simple mode that understands a subset of
+ * JavaScript:
+ */
+
+CodeMirror.defineExtension("autoFormatRange", function (from, to) {
+
+    console.log("autoFormatRange");
+    var cm = this;
+    var outer = cm.getMode(), text = cm.getRange(from, to).split("\n");
+    var state = CodeMirror.copyState(outer, cm.getTokenAt(from).state);
+    var tabSize = cm.getOption("tabSize");
+
+    var out = "", lines = 0, atSol = from.ch == 0;
+    function newline() {
+        out += "\n";
+        atSol = true;
+        ++lines;
+    }
+
+    for (var i = 0; i < text.length; ++i) {
+        var stream = new CodeMirror.StringStream(text[i], tabSize);
+        while (!stream.eol()) {
+            var inner = CodeMirror.innerMode(outer, state);
+            var style = outer.token(stream, state), cur = stream.current();
+            stream.start = stream.pos;
+            if (!atSol || /\S/.test(cur)) {
+                out += cur;
+                atSol = false;
+            }
+            if (!atSol && inner.mode.newlineAfterToken &&
+                inner.mode.newlineAfterToken(style, cur, stream.string.slice(stream.pos) || text[i+1] || "", inner.state))
+                newline();
+        }
+        if (!stream.pos && outer.blankLine) outer.blankLine(state);
+        if (!atSol) newline();
+    }
+
+    cm.operation(function () {
+        cm.replaceRange(out, from, to);
+        for (var cur = from.line + 1, end = from.line + lines; cur <= end; ++cur)
+            cm.indentLine(cur, "smart");
+        cm.setSelection(from, cm.getCursor(false));
+    });
+});
+
+// Applies automatic mode-aware indentation to the specified range
+CodeMirror.defineExtension("autoIndentRange", function (from, to) {
+    var cmInstance = this;
+    this.operation(function () {
+        for (var i = from.line; i <= to.line; i++) {
+            cmInstance.indentLine(i, "smart");
+        }
+    });
+});
+
+CodeMirror.defineSimpleMode("simplemode", {
+  // The start state contains the rules that are intially used
+  start: [
+    // The regex matches the token, the token property contains the type
+    // {regex: /\|(?:[^\\]|\\.)*?\|/, token: "def"},
+    {regex: /(?:\.\d+|\d+\.?\d*)(?:e[-+]?\d+)?/i,
+     token: "number"},
+    // A next property will cause the mode to move to a different state
+    {regex: /\|/, token: "operator", next: "descr"},
+    {regex: /\=\(/, token: "operator", indent: true},
+    {regex: /[+=]+/, token: "operator"},
+    // indent and dedent properties guide autoindentation
+    {regex: /[\:\{\(]/, indent: true},
+    {regex: /[\}\)]/, dedent: true},
+  ],
+  // The multi-line comment state.
+  descr: [
+    {regex: /\|/, token: "operator", next: "start"},
+    {regex: /[^|]*/, token: "string"}
+  ],
+  // The meta property contains global information about the mode. It
+  // can contain properties like lineComment, which are supported by
+  // all modes, and also directives like dontIndentStates, which are
+  // specific to simple modes.
+  meta: {
+    dontIndentStates: ["comment"],
+    lineComment: "//"
+  }
+});
+
+CodeMirror.extendMode("simplemode", {
+    newlineAfterToken: function(_type, content) {
+      return /(^[,:]$|^\)[^,]$|^\=\($|^===$)/.test(content);
+    }
+  });
+
 var elem = document.getElementById('pad');
 var cm = CodeMirror.fromTextArea(elem, {
-  mode: "text/plain"
+    lineNumbers: true,
+  mode: "simplemode"
 });
+
+
+function autoFormatSelection() {
+        var range = { from: cm.getCursor(true), to: cm.getCursor(false) };
+        cm.autoFormatRange(range.from, range.to);
+      }
+
+function checkSyntax() {
+  console.log(cm.getValue());
+}
 
 var s = new BCSocket(null, {reconnect: true});
 var sjs = new window.sharejs.Connection(s);
@@ -28,39 +137,7 @@ doc.whenReady(function () {
   }
 });
 
-document.getElementById('monkey').onclick = function() {
-  setInterval(monkeyType, 50);
-};
 
-function monkeyType() {
-  var textLength = cm.getValue().length;
-  var pos = Math.floor(Math.random()*textLength);
-  var from = cm.posFromIndex(pos);
-  var editLength = randomInt(10)
-  if(Math.random() < 0.9) {
-    // Add text
-    var text =  randomString(editLength);
-    cm.replaceRange(text, cm.posFromIndex(pos));
-  } else {
-    var endIndex = Math.max(pos + editLength, textLength-1);
-    var to = cm.posFromIndex(endIndex);
-    cm.replaceRange('', from, to);
-  }
-}
-
-function randomString(len) {
-	var chars = "0123456789\nABCDEF\nGHIJKLM\nNOPQRSTUVWXTZ\nabcde\nfghiklmnop\nqrstuvwxyz";
-	var result = '';
-	for (var i=0; i<len; i++) {
-		var rnum = randomInt(chars.length);
-		result += chars.substring(rnum, rnum+1);
-	}
-  return result;
-}
-
-function randomInt(max) {
-  return Math.floor(Math.random()*max);
-}
 
 </script>
 </body>

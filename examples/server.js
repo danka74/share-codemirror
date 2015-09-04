@@ -12,7 +12,7 @@ var share = sharejs.server.createClient({backend: backend});
 var app = express();
 app.use(express.static(__dirname));
 app.use(express.static(shareCodeMirror.scriptsDir));
-app.use(express.static(__dirname + '/../node_modules/codemirror/lib'));
+app.use(express.static(__dirname + '/../node_modules/codemirror'));
 app.use(express.static(sharejs.scriptsDir));
 app.use(browserChannel(function (client) {
   var stream = new Duplex({objectMode: true});
