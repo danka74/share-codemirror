@@ -2,22 +2,24 @@
 <html>
 <head>
 <link rel="stylesheet" href="/lib/codemirror.css">
+<link rel="stylesheet" href="snomedct_cg.css">
 <script src="/lib/codemirror.js"></script>
 <script src="addon/mode/simple.js"></script>
 <script src="/channel/bcsocket.js"></script>
 <script src="/share.js"></script>
 <script src="/share-codemirror.js"></script>
+<script src="/node_modules/jquery/dist/jquery.min.js"></script>
 </head>
 <body>
-<textarea id="pad">Connecting...</textarea>
-<a href="javascript:autoFormatSelection()">
-            Autoformat Selected
-          </a>
-&nbsp;
-<a href="javascript:checkSyntax()">
-            Check Syntax
-          </a>
-<script>
+	<textarea id="pad">Connecting...</textarea>
+	<a href="javascript:autoFormatSelection()"> Autoformat Selected </a>
+	&nbsp;
+	<a href="javascript:checkSyntax()"> Check Syntax </a>
+	&nbsp;
+	<a href="javascript:diagram()"> Diagram </a>
+	<div id="message"></div>
+	<svg id="diagram"></svg>
+	<script type="text/javascript">
 /* Example definition of a simple mode that understands a subset of
  * JavaScript:
  */
@@ -91,7 +93,7 @@ CodeMirror.defineSimpleMode("simplemode", {
   // The multi-line comment state.
   descr: [
     {regex: /\|/, token: "operator", next: "start"},
-    {regex: /[^|]*/, token: "string"}
+    {regex: /[^|]*/, token: "description"}
   ],
   // The meta property contains global information about the mode. It
   // can contain properties like lineComment, which are supported by
@@ -114,6 +116,7 @@ var cm = CodeMirror.fromTextArea(elem, {
     lineNumbers: true,
   mode: "simplemode"
 });
+var errorLine = 0;
 
 
 function autoFormatSelection() {
@@ -122,12 +125,49 @@ function autoFormatSelection() {
       }
 
 function checkSyntax() {
-  console.log(cm.getValue());
+  $("#message").html("");
+  cm.removeLineClass(errorLine, "background", null);
+  var expression = cm.getValue();
+  console.log(expression);
+  $.ajax({
+  	type: "POST",
+  	url: "http://localhost:8184/check",
+  	data: {"expression": expression},
+  	success: function(data) {
+  		console.log(data);
+  		if(data.status == "ok")
+  			$("#message").html("Syntax ok!");
+  		else {
+  			$("#message").html(data.cause);
+  			cm.addLineClass(data.line - 1, "background", "syntax-error");
+  			errorLine = data.line - 1;
+  			cm.scrollIntoView({"line": data.line - 1, "ch": data.pos});
+  		}
+  	}
+  });
+  
 }
+
+function diagram() {
+  var expression = cm.getValue();
+  $.ajax({
+  	type: "POST",
+  	url: "http://localhost:8184/svg",
+  	data: {"expression": expression},
+  	success: function(data) {
+  		console.log(data);
+  		$("#diagram").append(data.);
+  	}
+  });
+}
+
 
 var s = new BCSocket(null, {reconnect: true});
 var sjs = new window.sharejs.Connection(s);
-var doc = sjs.get('users', 'sephx');
+
+console.log(location.hash);
+
+var doc = sjs.get('users', location.hash);
 
 doc.subscribe();
 doc.whenReady(function () {
@@ -136,9 +176,6 @@ doc.whenReady(function () {
     doc.attachCodeMirror(cm);
   }
 });
-
-
-
 </script>
 </body>
 </html>

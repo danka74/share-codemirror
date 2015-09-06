@@ -28,5 +28,9 @@
     "livedb": "^0.4.9",
     "mocha": "^2.0.1",
     "share": "^0.7.3"
+  },
+  "dependencies": {
+    "jquery": "^2.1.4",
+    "livedb-mongo": "^0.4.1"
   }
 }

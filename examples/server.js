@@ -2,11 +2,14 @@ var http = require('http');
 var Duplex = require('stream').Duplex;
 var browserChannel = require('browserchannel').server;
 var express = require('express');
+var db = require('livedb-mongo')('mongodb://localhost:27017/sct_cg_db?auto_reconnect', {
+    safe: true
+  })
 var livedb = require('livedb');
 var sharejs = require('share');
 var shareCodeMirror = require('..');
 
-var backend = livedb.client(livedb.memory());
+var backend = livedb.client(db);
 var share = sharejs.server.createClient({backend: backend});
 
 var app = express();
