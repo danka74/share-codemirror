@@ -18,7 +18,7 @@
 	&nbsp;
 	<a href="javascript:diagram()"> Diagram </a>
 	<div id="message"></div>
-	<svg id="diagram"></svg>
+	<div id="diagram"></div>
 	<script type="text/javascript">
 /* Example definition of a simple mode that understands a subset of
  * JavaScript:
@@ -156,7 +156,11 @@ function diagram() {
   	data: {"expression": expression},
   	success: function(data) {
   		console.log(data);
-  		$("#diagram").append(data.);
+  		var svgNode = $("svg", data);
+	    var docNode = document.adoptNode(svgNode[0]);
+	    var pageNode = $("#diagram");
+
+	    pageNode.html(docNode);
   	}
   });
 }
