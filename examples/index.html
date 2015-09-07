@@ -189,7 +189,7 @@
 			console.log(expression);
 			$.ajax({
 				type : "POST",
-				url : "http://localhost:8184/check",
+				url : "http://" + window.location.hostname + ":8184/check",
 				data : {
 					"expression" : expression
 				},
@@ -220,7 +220,7 @@
 			var expression = cm.getValue();
 			$.ajax({
 				type : "POST",
-				url : "http://localhost:8184/svg",
+				url : "http://" + window.location.hostname + ":8184/svg",
 				data : {
 					"expression" : expression
 				},
@@ -246,7 +246,7 @@
 		});
 		var sjs = new window.sharejs.Connection(s);
 
-		if(location.search == "")
+		if (location.search == "")
 			alert("No expression name provided. Please provide a name through the URL, e.g. 'http://lincoln.imt.liu.se:7007/?MyExpression'.")
 		var docName = location.search.substr(1);
 
