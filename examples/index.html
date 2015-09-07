@@ -34,7 +34,7 @@
 			</div>
 		</div>
 		<div class="row">
-			<div id="diagram" class="well"></div>
+			<div id="diagram" class="well" style="overflow: auto"></div>
 		</div>
 
 	</div>
@@ -230,16 +230,18 @@
 					var docNode = document.adoptNode(svgNode[0]);
 					var pageNode = $("#diagram");
 					pageNode.html(docNode);
-					$("#SctDiagram").attr("width", $("#diagram").width());
-					//$("#SctDiagram").attr("height", window.innerHeight);
+					var svg1 = document.getElementById('SctDiagram');
+					var bBox = svg1.getBBox();
+					$("#SctDiagram").attr("width", bBox.width);
+					$("#SctDiagram").attr("height", bBox.height);
 				}
 			});
 		}
 
-		$(window).resize(function() {
-			$("#SctDiagram").attr("width", $("#diagram").width());
-			//$("#SctDiagram").attr("height", $("#diagram").height());
-		});
+// 		$(window).resize(function() {
+// 			$("#SctDiagram").attr("width", $("#diagram").width());
+// 			//$("#SctDiagram").attr("height", $("#diagram").height());
+// 		});
 
 		var s = new BCSocket(null, {
 			reconnect : true
