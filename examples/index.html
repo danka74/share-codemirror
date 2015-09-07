@@ -1,185 +1,267 @@
-<!DOCTYPE html>
-<html>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
 <head>
-<link rel="stylesheet" href="/lib/codemirror.css">
-<link rel="stylesheet" href="snomedct_cg.css">
+<link rel="stylesheet" href="/lib/codemirror.css" />
+<link rel="stylesheet"
+	href="/node_modules/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="snomedct_cg.css" />
+
 <script src="/lib/codemirror.js"></script>
 <script src="addon/mode/simple.js"></script>
 <script src="/channel/bcsocket.js"></script>
 <script src="/share.js"></script>
 <script src="/share-codemirror.js"></script>
 <script src="/node_modules/jquery/dist/jquery.min.js"></script>
+<script src="/node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
-	<textarea id="pad">Connecting...</textarea>
-	<a href="javascript:autoFormatSelection()"> Autoformat Selected </a>
-	&nbsp;
-	<a href="javascript:checkSyntax()"> Check Syntax </a>
-	&nbsp;
-	<a href="javascript:diagram()"> Diagram </a>
-	<div id="message"></div>
-	<div id="diagram"></div>
+	<div class="container">
+		<h1>SNOMED CT Postcoordination tool</h1>
+		<div class="row">
+			<div class="well">
+				<textarea id="pad">Connecting...</textarea>
+			</div>
+		</div>
+		<div class="row">
+			<div class="well">
+				<a href="javascript:autoFormatSelection()" class="btn btn-info">
+					Autoformat Selected </a> <a href="javascript:checkSyntax()"
+					class="btn btn-info"> Check Syntax </a> <a
+					href="javascript:diagram()" class="btn btn-info"> Diagram </a>
+				<div class="alert" id="message" style="margin-bottom: 0px">...</div>
+			</div>
+		</div>
+		<div class="row">
+			<div id="diagram" class="well"></div>
+		</div>
+
+	</div>
+
+
 	<script type="text/javascript">
-/* Example definition of a simple mode that understands a subset of
- * JavaScript:
- */
+		/* Example definition of a simple mode that understands a subset of
+		 * JavaScript:
+		 */
 
-CodeMirror.defineExtension("autoFormatRange", function (from, to) {
+		CodeMirror
+				.defineExtension(
+						"autoFormatRange",
+						function(from, to) {
 
-    console.log("autoFormatRange");
-    var cm = this;
-    var outer = cm.getMode(), text = cm.getRange(from, to).split("\n");
-    var state = CodeMirror.copyState(outer, cm.getTokenAt(from).state);
-    var tabSize = cm.getOption("tabSize");
+							console.log("autoFormatRange");
+							var cm = this;
+							var outer = cm.getMode(), text = cm.getRange(from,
+									to).split("\n");
+							var state = CodeMirror.copyState(outer, cm
+									.getTokenAt(from).state);
+							var tabSize = cm.getOption("tabSize");
 
-    var out = "", lines = 0, atSol = from.ch == 0;
-    function newline() {
-        out += "\n";
-        atSol = true;
-        ++lines;
-    }
+							var out = "", lines = 0, atSol = from.ch == 0;
+							function newline() {
+								out += "\n";
+								atSol = true;
+								++lines;
+							}
 
-    for (var i = 0; i < text.length; ++i) {
-        var stream = new CodeMirror.StringStream(text[i], tabSize);
-        while (!stream.eol()) {
-            var inner = CodeMirror.innerMode(outer, state);
-            var style = outer.token(stream, state), cur = stream.current();
-            stream.start = stream.pos;
-            if (!atSol || /\S/.test(cur)) {
-                out += cur;
-                atSol = false;
-            }
-            if (!atSol && inner.mode.newlineAfterToken &&
-                inner.mode.newlineAfterToken(style, cur, stream.string.slice(stream.pos) || text[i+1] || "", inner.state))
-                newline();
-        }
-        if (!stream.pos && outer.blankLine) outer.blankLine(state);
-        if (!atSol) newline();
-    }
+							for (var i = 0; i < text.length; ++i) {
+								var stream = new CodeMirror.StringStream(
+										text[i], tabSize);
+								while (!stream.eol()) {
+									var inner = CodeMirror.innerMode(outer,
+											state);
+									var style = outer.token(stream, state), cur = stream
+											.current();
+									stream.start = stream.pos;
+									if (!atSol || /\S/.test(cur)) {
+										out += cur;
+										atSol = false;
+									}
+									if (!atSol
+											&& inner.mode.newlineAfterToken
+											&& inner.mode.newlineAfterToken(
+													style, cur, stream.string
+															.slice(stream.pos)
+															|| text[i + 1]
+															|| "", inner.state))
+										newline();
+								}
+								if (!stream.pos && outer.blankLine)
+									outer.blankLine(state);
+								if (!atSol)
+									newline();
+							}
 
-    cm.operation(function () {
-        cm.replaceRange(out, from, to);
-        for (var cur = from.line + 1, end = from.line + lines; cur <= end; ++cur)
-            cm.indentLine(cur, "smart");
-        cm.setSelection(from, cm.getCursor(false));
-    });
-});
+							cm.operation(function() {
+								cm.replaceRange(out, from, to);
+								for (var cur = from.line + 1, end = from.line
+										+ lines; cur <= end; ++cur)
+									cm.indentLine(cur, "smart");
+								cm.setSelection(from, cm.getCursor(false));
+							});
+						});
 
-// Applies automatic mode-aware indentation to the specified range
-CodeMirror.defineExtension("autoIndentRange", function (from, to) {
-    var cmInstance = this;
-    this.operation(function () {
-        for (var i = from.line; i <= to.line; i++) {
-            cmInstance.indentLine(i, "smart");
-        }
-    });
-});
+		// Applies automatic mode-aware indentation to the specified range
+		CodeMirror.defineExtension("autoIndentRange", function(from, to) {
+			var cmInstance = this;
+			this.operation(function() {
+				for (var i = from.line; i <= to.line; i++) {
+					cmInstance.indentLine(i, "smart");
+				}
+			});
+		});
 
-CodeMirror.defineSimpleMode("simplemode", {
-  // The start state contains the rules that are intially used
-  start: [
-    // The regex matches the token, the token property contains the type
-    // {regex: /\|(?:[^\\]|\\.)*?\|/, token: "def"},
-    {regex: /(?:\.\d+|\d+\.?\d*)(?:e[-+]?\d+)?/i,
-     token: "number"},
-    // A next property will cause the mode to move to a different state
-    {regex: /\|/, token: "operator", next: "descr"},
-    {regex: /\=\(/, token: "operator", indent: true},
-    {regex: /[+=]+/, token: "operator"},
-    // indent and dedent properties guide autoindentation
-    {regex: /[\:\{\(]/, indent: true},
-    {regex: /[\}\)]/, dedent: true},
-  ],
-  // The multi-line comment state.
-  descr: [
-    {regex: /\|/, token: "operator", next: "start"},
-    {regex: /[^|]*/, token: "description"}
-  ],
-  // The meta property contains global information about the mode. It
-  // can contain properties like lineComment, which are supported by
-  // all modes, and also directives like dontIndentStates, which are
-  // specific to simple modes.
-  meta: {
-    dontIndentStates: ["comment"],
-    lineComment: "//"
-  }
-});
+		CodeMirror.defineSimpleMode("simplemode", {
+			// The start state contains the rules that are intially used
+			start : [
+			// The regex matches the token, the token property contains the type
+			// {regex: /\|(?:[^\\]|\\.)*?\|/, token: "def"},
+			{
+				regex : /(?:\.\d+|\d+\.?\d*)(?:e[-+]?\d+)?/i,
+				token : "number"
+			},
+			// A next property will cause the mode to move to a different state
+			{
+				regex : /\|/,
+				token : "operator",
+				next : "descr"
+			}, {
+				regex : /\=\(/,
+				token : "operator",
+				indent : true
+			}, {
+				regex : /[+=]+/,
+				token : "operator"
+			},
+			// indent and dedent properties guide autoindentation
+			{
+				regex : /[\:\{\(]/,
+				indent : true
+			}, {
+				regex : /[\}\)]/,
+				dedent : true
+			}, ],
+			// The multi-line comment state.
+			descr : [ {
+				regex : /\|/,
+				token : "operator",
+				next : "start"
+			}, {
+				regex : /[^|]*/,
+				token : "description"
+			} ],
+			// The meta property contains global information about the mode. It
+			// can contain properties like lineComment, which are supported by
+			// all modes, and also directives like dontIndentStates, which are
+			// specific to simple modes.
+			meta : {
+				dontIndentStates : [ "comment" ],
+				lineComment : "//"
+			}
+		});
 
-CodeMirror.extendMode("simplemode", {
-    newlineAfterToken: function(_type, content) {
-      return /(^[,:]$|^\)[^,]$|^\=\($|^===$)/.test(content);
-    }
-  });
+		CodeMirror.extendMode("simplemode", {
+			newlineAfterToken : function(_type, content) {
+				return /(^[,:]$|^\)[^,]$|^\=\($|^===$)/.test(content);
+			}
+		});
 
-var elem = document.getElementById('pad');
-var cm = CodeMirror.fromTextArea(elem, {
-    lineNumbers: true,
-  mode: "simplemode"
-});
-var errorLine = 0;
+		var elem = document.getElementById('pad');
+		var cm = CodeMirror.fromTextArea(elem, {
+			lineNumbers : true,
+			mode : "simplemode"
+		});
+		var errorLine = 0;
 
+		function autoFormatSelection() {
+			var range = {
+				from : cm.getCursor(true),
+				to : cm.getCursor(false)
+			};
+			cm.autoFormatRange(range.from, range.to);
+		}
 
-function autoFormatSelection() {
-        var range = { from: cm.getCursor(true), to: cm.getCursor(false) };
-        cm.autoFormatRange(range.from, range.to);
-      }
+		function checkSyntax() {
+			$("#message").html("");
+			cm.removeLineClass(errorLine, "background", null);
+			var expression = cm.getValue();
+			console.log(expression);
+			$.ajax({
+				type : "POST",
+				url : "http://localhost:8184/check",
+				data : {
+					"expression" : expression
+				},
+				success : function(data) {
+					console.log(data);
+					if (data.status == "ok") {
+						$("#message").removeClass("alert-danger");
+						$("#message").addClass("alert-success");
+						$("#message").html("Syntax ok!");
+					} else {
+						$("#message").removeClass("alert-success");
+						$("#message").addClass("alert-danger");
+						$("#message").html("Syntax error: " + data.cause);
+						cm.addLineClass(data.line - 1, "background",
+								"syntax-error");
+						errorLine = data.line - 1;
+						cm.scrollIntoView({
+							"line" : data.line - 1,
+							"ch" : data.pos
+						});
+					}
+				}
+			});
 
-function checkSyntax() {
-  $("#message").html("");
-  cm.removeLineClass(errorLine, "background", null);
-  var expression = cm.getValue();
-  console.log(expression);
-  $.ajax({
-  	type: "POST",
-  	url: "http://localhost:8184/check",
-  	data: {"expression": expression},
-  	success: function(data) {
-  		console.log(data);
-  		if(data.status == "ok")
-  			$("#message").html("Syntax ok!");
-  		else {
-  			$("#message").html(data.cause);
-  			cm.addLineClass(data.line - 1, "background", "syntax-error");
-  			errorLine = data.line - 1;
-  			cm.scrollIntoView({"line": data.line - 1, "ch": data.pos});
-  		}
-  	}
-  });
-  
-}
+		}
 
-function diagram() {
-  var expression = cm.getValue();
-  $.ajax({
-  	type: "POST",
-  	url: "http://localhost:8184/svg",
-  	data: {"expression": expression},
-  	success: function(data) {
-  		console.log(data);
-  		var svgNode = $("svg", data);
-	    var docNode = document.adoptNode(svgNode[0]);
-	    var pageNode = $("#diagram");
+		function diagram() {
+			var expression = cm.getValue();
+			$.ajax({
+				type : "POST",
+				url : "http://localhost:8184/svg",
+				data : {
+					"expression" : expression
+				},
+				success : function(data) {
+					console.log(data);
+					var svgNode = $("svg", data);
+					var docNode = document.adoptNode(svgNode[0]);
+					var pageNode = $("#diagram");
+					pageNode.html(docNode);
+					$("#SctDiagram").attr("width", $("#diagram").width());
+					//$("#SctDiagram").attr("height", window.innerHeight);
+				}
+			});
+		}
 
-	    pageNode.html(docNode);
-  	}
-  });
-}
+		$(window).resize(function() {
+			$("#SctDiagram").attr("width", $("#diagram").width());
+			//$("#SctDiagram").attr("height", $("#diagram").height());
+		});
 
+		var s = new BCSocket(null, {
+			reconnect : true
+		});
+		var sjs = new window.sharejs.Connection(s);
 
-var s = new BCSocket(null, {reconnect: true});
-var sjs = new window.sharejs.Connection(s);
+		if(location.search == "")
+			alert("No expression name provided. Please provide a name through the URL, e.g. 'http://lincoln.imt.liu.se:7007/?MyExpression'.")
+		var docName = location.search.substr(1);
 
-console.log(location.hash);
+		console.log(docName);
 
-var doc = sjs.get('users', location.hash);
+		var doc = sjs.get('users', docName);
 
-doc.subscribe();
-doc.whenReady(function () {
-  if (!doc.type) doc.create('text');
-  if (doc.type && doc.type.name === 'text') {
-    doc.attachCodeMirror(cm);
-  }
-});
-</script>
+		doc.subscribe();
+		doc.whenReady(function() {
+			if (!doc.type)
+				doc.create('text');
+			if (doc.type && doc.type.name === 'text') {
+				doc.attachCodeMirror(cm);
+			}
+		});
+	</script>
 </body>
 </html>
