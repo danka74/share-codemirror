@@ -14,6 +14,7 @@
 <script src="/share-codemirror.js"></script>
 <script src="/node_modules/jquery/dist/jquery.min.js"></script>
 <script src="/node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+<script src="/node_modules/browser-filesaver/FileSaver.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 </head>
 <body>
@@ -29,7 +30,9 @@
 				<a href="javascript:autoFormatSelection()" class="btn btn-info">
 					Autoformat Selected </a> <a href="javascript:checkSyntax()"
 					class="btn btn-info"> Check Syntax </a> <a
-					href="javascript:diagram()" class="btn btn-info"> Diagram </a>
+					href="javascript:diagram()" class="btn btn-info"> Diagram </a> <a
+					id="saveDiagramButton" href="javascript:saveDiagram()"
+					class="btn btn-info disabled"> Save Diagram </a>
 				<div class="alert" id="message" style="margin-bottom: 0px">...</div>
 			</div>
 		</div>
@@ -216,6 +219,8 @@
 
 		}
 
+		var svgData = null;
+		
 		function diagram() {
 			var expression = cm.getValue();
 			$.ajax({
@@ -226,6 +231,7 @@
 				},
 				success : function(data) {
 					console.log(data);
+					svgData = new XMLSerializer().serializeToString(data.documentElement);
 					var svgNode = $("svg", data);
 					var docNode = document.adoptNode(svgNode[0]);
 					var pageNode = $("#diagram");
@@ -234,14 +240,17 @@
 					var bBox = svg1.getBBox();
 					$("#SctDiagram").attr("width", bBox.width);
 					$("#SctDiagram").attr("height", bBox.height);
+					$("#saveDiagramButton").removeClass("disabled");
 				}
 			});
 		}
-
-// 		$(window).resize(function() {
-// 			$("#SctDiagram").attr("width", $("#diagram").width());
-// 			//$("#SctDiagram").attr("height", $("#diagram").height());
-// 		});
+		
+		function saveDiagram() {
+			if(svgData != null) {
+				var blob = new Blob([svgData], {type: "image/svg+xml"});
+				saveAs(blob, docName + ".svg");
+			}
+		}
 
 		var s = new BCSocket(null, {
 			reconnect : true
